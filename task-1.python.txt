@@ -1,0 +1,76 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import yfinance as yf
+
+# -------------------------
+# 1. Download Stock Data
+# -------------------------
+symbol = "AAPL"  # You can change to any stock, e.g. "TSLA", "MSFT", "RELIANCE.NS"
+data = yf.download(symbol, start="2020-01-01", end="2025-01-01")
+close_prices = data['Close']
+
+# -------------------------
+# 2. Compute Log Returns
+# -------------------------
+log_returns = np.log(close_prices / close_prices.shift(1)).dropna()
+
+# -------------------------
+# 3. Detrended Fluctuation Analysis (DFA)
+# -------------------------
+def DFA(signal, scale_min=4, scale_max=100, scale_res=20):
+    """Compute DFA scaling exponent for a 1D signal."""
+    # Cumulative sum (profile)
+    y = np.cumsum(signal - np.mean(signal))
+    
+    scales = np.floor(np.logspace(np.log10(scale_min), np.log10(scale_max), scale_res)).astype(int)
+    F = []
+
+    for s in scales:
+        segments = len(y) // s
+        rms = []
+        for v in range(segments):
+            segment = y[v*s:(v+1)*s]
+            # Polynomial fit (order 1 = linear detrending)
+            coef = np.polyfit(range(s), segment, 1)
+            trend = np.polyval(coef, range(s))
+            rms.append(np.sqrt(np.mean((segment - trend)**2)))
+        F.append(np.sqrt(np.mean(np.array(rms)**2)))
+
+    scales = np.array(scales)
+    F = np.array(F)
+    
+    # Linear regression in log-log scale
+    coeffs = np.polyfit(np.log(scales), np.log(F), 1)
+    alpha = coeffs[0]
+    return alpha, scales, F
+
+alpha, scales, F = DFA(log_returns.values)
+
+print(f"DFA Scaling Exponent (α): {alpha:.3f}")
+if alpha < 0.5:
+    print("→ Anti-persistent (mean-reverting behavior)")
+elif 0.5 <= alpha < 1:
+    print("→ Persistent (trend-following behavior)")
+else:
+    print("→ Long-range correlations (strong trend)")
+
+# -------------------------
+# 4. Visualization
+# -------------------------
+plt.figure(figsize=(6,4))
+plt.loglog(scales, F, 'o-', label=f'α = {alpha:.3f}')
+plt.xlabel('Scale (s)')
+plt.ylabel('Fluctuation F(s)')
+plt.title(f'DFA for {symbol}')
+plt.legend()
+plt.grid(True, which="both", ls="--", alpha=0.5)
+plt.show()
+
+# -------------------------
+# 5. Basic Prediction Idea
+# -------------------------
+# You can use alpha to infer market behavior:
+# α < 0.5  → prices may revert (short-term correction)
+# α > 0.5  → prices may continue trend (momentum continuation)
+# This is not a direct price predictor, but a *trend strength indicator*.

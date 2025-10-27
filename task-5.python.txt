@@ -1,0 +1,106 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# -------------------------
+# ACO Parameters
+# -------------------------
+num_ants = 20
+num_iterations = 100
+alpha = 1      # pheromone influence
+beta = 5       # distance influence
+rho = 0.5      # evaporation rate
+Q = 100        # pheromone deposit factor
+
+# -------------------------
+# Create Distance Matrix (Example with 6 cities)
+# -------------------------
+coords = np.array([
+    [0, 0],
+    [1, 5],
+    [5, 3],
+    [6, 6],
+    [8, 3],
+    [7, 1]
+])
+
+n = len(coords)
+dist = np.zeros((n, n))
+for i in range(n):
+    for j in range(n):
+        if i != j:
+            dist[i][j] = np.linalg.norm(coords[i] - coords[j])
+        else:
+            dist[i][j] = np.inf
+
+# -------------------------
+# Initialize pheromone matrix
+# -------------------------
+pheromone = np.ones((n, n))
+
+def probability(i, visited):
+    """Compute probability of going from city i to all others."""
+    probs = np.zeros(n)
+    for j in range(n):
+        if j not in visited:
+            probs[j] = (pheromone[i][j] ** alpha) * ((1 / dist[i][j]) ** beta)
+    total = np.sum(probs)
+    if total == 0:
+        return probs
+    return probs / total
+
+def tour_length(tour):
+    """Compute total length of a tour."""
+    return sum(dist[tour[i]][tour[i + 1]] for i in range(len(tour) - 1)) + dist[tour[-1]][tour[0]]
+
+# -------------------------
+# Main ACO Loop
+# -------------------------
+best_length = np.inf
+best_tour = None
+
+for iteration in range(num_iterations):
+    all_tours = []
+    all_lengths = []
+
+    for ant in range(num_ants):
+        visited = [np.random.randint(n)]
+        while len(visited) < n:
+            i = visited[-1]
+            probs = probability(i, visited)
+            next_city = np.random.choice(range(n), p=probs / probs.sum())
+            visited.append(next_city)
+        all_tours.append(visited)
+        length = tour_length(visited)
+        all_lengths.append(length)
+
+        if length < best_length:
+            best_length = length
+            best_tour = visited
+
+    # Pheromone evaporation
+    pheromone *= (1 - rho)
+
+    # Pheromone update
+    for k, tour in enumerate(all_tours):
+        for i in range(n):
+            a, b = tour[i], tour[(i + 1) % n]
+            pheromone[a][b] += Q / all_lengths[k]
+            pheromone[b][a] += Q / all_lengths[k]
+
+    print(f"Iteration {iteration+1}/{num_iterations} → Best Distance: {best_length:.2f}")
+
+# -------------------------
+# Results
+# -------------------------
+print("\n✅ Optimal Tour (approx):", best_tour)
+print("✅ Shortest Distance Found:", round(best_length, 2))
+
+# Plot best path
+x, y = coords[:,0], coords[:,1]
+plt.figure(figsize=(6,5))
+plt.scatter(x, y, color='red')
+for i in range(len(best_tour)):
+    a, b = best_tour[i], best_tour[(i + 1) % len(best_tour)]
+    plt.plot([x[a], x[b]], [y[a], y[b]], 'b-')
+plt.title("Ant Colony Optimization - TSP Solution")
+plt.show()

@@ -1,0 +1,64 @@
+import numpy as np
+import pandas as pd
+import yfinance as yf
+import matplotlib.pyplot as plt
+
+# -------------------------
+# 1. Download Stock Data
+# -------------------------
+symbol = "AAPL"
+data = yf.download(symbol, start="2020-01-01", end="2025-01-01")
+prices = data['Close']
+
+# -------------------------
+# 2. Define Cost Function (MSE)
+# -------------------------
+def mse(actual, predicted):
+    return np.mean((actual - predicted) ** 2)
+
+# -------------------------
+# 3. Hill Climbing to Optimize MA Window
+# -------------------------
+def hill_climb(prices, start_window=5, max_iter=100, step_size=1):
+    current_window = start_window
+    best_window = current_window
+    
+    # initial cost
+    moving_avg = prices.rolling(current_window).mean()
+    cost = mse(prices[current_window:], moving_avg[current_window:])
+    
+    print(f"Start window={current_window}, cost={cost:.5f}")
+    
+    for i in range(max_iter):
+        # Generate neighbor solution (try larger/smaller window)
+        neighbor = current_window + np.random.choice([-step_size, step_size])
+        if neighbor < 2 or neighbor > 100:
+            continue
+        
+        # Calculate neighbor cost
+        neighbor_avg = prices.rolling(neighbor).mean()
+        neighbor_cost = mse(prices[neighbor:], neighbor_avg[neighbor:])
+        
+        # If neighbor better, move to it
+        if neighbor_cost < cost:
+            current_window = neighbor
+            cost = neighbor_cost
+            best_window = neighbor
+            print(f"Iteration {i+1}: Found better window={neighbor}, cost={neighbor_cost:.5f}")
+    
+    return best_window, cost
+
+best_window, best_cost = hill_climb(prices)
+
+print(f"\n✅ Best Moving Average Window: {best_window}")
+print(f"✅ Lowest Cost (MSE): {best_cost:.5f}")
+
+# -------------------------
+# 4. Visualization
+# -------------------------
+plt.figure(figsize=(10,5))
+plt.plot(prices, label="Actual Prices", color='blue')
+plt.plot(prices.rolling(best_window).mean(), label=f"Optimized MA ({best_window})", color='orange')
+plt.title(f"Hill Climbing Optimization ({symbol})")
+plt.legend()
+plt.show()

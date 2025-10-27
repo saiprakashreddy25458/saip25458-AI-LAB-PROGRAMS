@@ -1,0 +1,147 @@
+# chatbot_system.py
+# Intelligent Chatbot System using Python + Dialogflow + Flask
+
+from flask import Flask, render_template_string, request, jsonify
+import dialogflow_v2 as dialogflow
+import os
+
+# -------------------------------
+# CONFIGURATION
+# -------------------------------
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "dialogflow_key.json"
+DIALOGFLOW_PROJECT_ID = "your-dialogflow-project-id"
+DIALOGFLOW_LANGUAGE_CODE = "en"
+SESSION_ID = "flask-session"
+
+# -------------------------------
+# FLASK APP
+# -------------------------------
+app = Flask(__name__)
+
+# Simple HTML template for chatbot UI
+html_template = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🤖 Smart Chatbot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f6fa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .chat-container {
+      width: 420px;
+      background: white;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-box {
+      height: 400px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .user, .bot {
+      margin: 6px 0;
+      padding: 8px 12px;
+      border-radius: 12px;
+      max-width: 80%;
+    }
+    .user {
+      background: #d1e7dd;
+      align-self: flex-end;
+    }
+    .bot {
+      background: #f8d7da;
+      align-self: flex-start;
+    }
+    input[type=text] {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      width: 75%;
+    }
+    button {
+      padding: 10px 15px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <h2>🤖 Smart Chatbot</h2>
+    <div class="chat-box" id="chatBox"></div>
+    <div>
+      <input type="text" id="userInput" placeholder="Type your message...">
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+<script>
+async function sendMessage() {
+  let userInput = document.getElementById("userInput").value.trim();
+  if (!userInput) return;
+
+  let chatBox = document.getElementById("chatBox");
+  chatBox.innerHTML += `<div class='user'>You: ${userInput}</div>`;
+
+  const response = await fetch("/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: userInput })
+  });
+  
+  const data = await response.json();
+  chatBox.innerHTML += `<div class='bot'>Bot: ${data.reply}</div>`;
+  document.getElementById("userInput").value = "";
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+</script>
+</body>
+</html>
+"""
+
+# -------------------------------
+# DIALOGFLOW COMMUNICATION
+# -------------------------------
+def get_dialogflow_response(text):
+    session_client = dialogflow.SessionsClient()
+    session = session_client.session_path(DIALOGFLOW_PROJECT_ID, SESSION_ID)
+    text_input = dialogflow.types.TextInput(text=text, language_code=DIALOGFLOW_LANGUAGE_CODE)
+    query_input = dialogflow.types.QueryInput(text=text_input)
+    response = session_client.detect_intent(request={"session": session, "query_input": query_input})
+    return response.query_result.fulfillment_text
+
+# -------------------------------
+# ROUTES
+# -------------------------------
+@app.route("/")
+def index():
+    return render_template_string(html_template)
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    user_message = request.get_json().get("message")
+    bot_reply = get_dialogflow_response(user_message)
+    return jsonify({"reply": bot_reply})
+
+# -------------------------------
+# MAIN
+# -------------------------------
+if __name__ == "__main__":
+    print("🚀 Chatbot is running at: http://127.0.0.1:5000/")
+    app.run(debug=True)

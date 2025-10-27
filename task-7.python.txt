@@ -1,0 +1,65 @@
+from collections import deque
+
+# -----------------------------
+# Define Graph (Factory Layout)
+# -----------------------------
+graph = {
+    'Base': ['A', 'B'],
+    'A': ['Base', 'C', 'D'],
+    'B': ['Base', 'E'],
+    'C': ['A', 'F'],
+    'D': ['A'],
+    'E': ['B', 'F'],
+    'F': ['C', 'E', 'Tool'],
+    'Tool': ['F']
+}
+
+# -----------------------------
+# BFS to find shortest path
+# -----------------------------
+def find_path(graph, start, goal):
+    visited = set()
+    queue = deque([[start]])
+
+    while queue:
+        path = queue.popleft()
+        node = path[-1]
+        
+        if node == goal:
+            return path
+        
+        if node not in visited:
+            visited.add(node)
+            for neighbor in graph[node]:
+                new_path = list(path)
+                new_path.append(neighbor)
+                queue.append(new_path)
+    return None
+
+# -----------------------------
+# Simulate Robot Movement
+# -----------------------------
+def robot_traverse(path):
+    print("\n🤖 Robot starting traversal...\n")
+    for i, node in enumerate(path):
+        if i == 0:
+            print(f"Robot at starting point: {node}")
+        elif node == "Tool":
+            print(f"🛠️ Reached the tool at location: {node} ✅")
+        else:
+            print(f"→ Moving to {node} ...")
+    print("\n✅ Task complete: Tool successfully fetched!\n")
+
+# -----------------------------
+# Run the Simulation
+# -----------------------------
+start = 'Base'
+goal = 'Tool'
+
+path = find_path(graph, start, goal)
+
+if path:
+    print(f"🔍 Shortest Path to fetch tool: {' → '.join(path)}")
+    robot_traverse(path)
+else:
+    print("❌ No path found to the tool.")

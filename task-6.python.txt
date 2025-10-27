@@ -1,0 +1,65 @@
+from collections import defaultdict
+import time
+
+# -------------------------
+# Graph Class Definition
+# -------------------------
+class Graph:
+    def __init__(self):
+        self.graph = defaultdict(list)
+        self.color = {}
+
+    def add_edge(self, u, v):
+        """Add undirected edge between nodes u and v"""
+        self.graph[u].append(v)
+        self.graph[v].append(u)
+        self.color[u] = 'WHITE'
+        self.color[v] = 'WHITE'
+
+    def dfs_traverse(self, start):
+        """DFS traversal with graph coloring"""
+        print(f"\nStarting robot traversal from node: {start}\n")
+        self._dfs_util(start)
+        print("\n✅ Traversal complete!\n")
+
+    def _dfs_util(self, node):
+        # Mark current node as in-progress
+        self.color[node] = 'GRAY'
+        print(f"🤖 Visiting {node} → color set to GRAY")
+        time.sleep(0.3)  # simulate robot movement
+
+        # Explore neighbors
+        for neighbor in self.graph[node]:
+            if self.color[neighbor] == 'WHITE':
+                print(f"  ↳ Moving to neighbor {neighbor}")
+                self._dfs_util(neighbor)
+
+        # Mark node as completed
+        self.color[node] = 'BLACK'
+        print(f✔️ Node {node} fully explored → color set to BLACK")
+
+# -------------------------
+# Example Graph (Robot Map)
+# -------------------------
+g = Graph()
+
+# Define robot map (graph connections)
+edges = [
+    ('A', 'B'), ('A', 'C'),
+    ('B', 'D'), ('B', 'E'),
+    ('C', 'F'),
+    ('E', 'F')
+]
+
+for u, v in edges:
+    g.add_edge(u, v)
+
+# -------------------------
+# Run Robot Traversal
+# -------------------------
+g.dfs_traverse('A')
+
+# Print final node colors
+print("\nFinal node colors (visited status):")
+for node, color in g.color.items():
+    print(f"  {node}: {color}")

@@ -1,0 +1,31 @@
+import random
+
+# -------------------------
+# Sample Facts
+# -------------------------
+facts = [
+    "Honey never spoils. Archaeologists have found edible honey in ancient tombs.",
+    "Octopuses have three hearts and blue blood.",
+    "Bananas are berries, but strawberries are not.",
+    "A day on Venus is longer than a year on Venus.",
+    "Sharks existed before trees.",
+    "There are more stars in the universe than grains of sand on Earth.",
+    "Sloths can hold their breath longer than dolphins.",
+]
+
+# -------------------------
+# Chatbot Loop
+# -------------------------
+print("🤖 FactBot is online! Type 'exit' to quit.\n")
+
+while True:
+    user_input = input("You: ").lower()
+    
+    if user_input in ["exit", "quit"]:
+        print("FactBot: Goodbye! 👋")
+        break
+    elif "fact" in user_input or "tell me" in user_input:
+        fact = random.choice(facts)
+        print("FactBot:", fact)
+    else:
+        print("FactBot: I can tell you facts! Try asking 'Tell me a fact'.")
